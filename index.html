@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Organizer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to Photo Organizer</h1>
+        <a href="{{ url_for('add_people') }}" class="add-people-link">Add People</a>
+        <form method="post" action="{{ url_for('search') }}">
+            <label for="userQuery">Enter your message:</label>
+            <input type="text" id="userQuery" name="userQuery" placeholder="Enter keywords (e.g., Nita)">
+            <button type="submit">Search</button>
+        </form>
+    </div>
+</body>
+</html>

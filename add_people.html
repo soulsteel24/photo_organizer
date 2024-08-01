@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add People</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Add People</h1>
+        <form method="post" action="{{ url_for('add_people') }}" enctype="multipart/form-data">
+            <div id="people-forms">
+                <!-- Initial two person forms -->
+                <div class="person-form">
+                    <label for="name1">Name:</label>
+                    <input type="text" id="name1" name="name" placeholder="Enter person's name" required>
+                    <label for="image1">Image:</label>
+                    <input type="file" id="image1" name="image" accept="image/*" required>
+                </div>
+                <div class="person-form">
+                    <label for="name2">Name:</label>
+                    <input type="text" id="name2" name="name" placeholder="Enter person's name" required>
+                    <label for="image2">Image:</label>
+                    <input type="file" id="image2" name="image" accept="image/*" required>
+                </div>
+                <!-- Additional forms can be added here -->
+            </div>
+            <button type="button" id="add-more">Add More</button>
+            <button type="submit">Submit</button>
+        </form>
+        <h2>Existing People</h2>
+        <ul>
+            {% for name in known_face_names %}
+                <li>{{ name }} <a href="{{ url_for('remove_person', name=name) }}">Remove</a></li>
+            {% endfor %}
+        </ul>
+        <a href="{{ url_for('index') }}" class="back-link">Back to Home</a>
+    </div>
+    <script>
+        let formCount = 2;
+        document.getElementById('add-more').addEventListener('click', function() {
+            if (formCount < 5) {
+                formCount++;
+                let newForm = document.createElement('div');
+                newForm.classList.add('person-form');
+                newForm.innerHTML = `
+                    <label for="name${formCount}">Name:</label>
+                    <input type="text" id="name${formCount}" name="name" placeholder="Enter person's name" required>
+                    <label for="image${formCount}">Image:</label>
+                    <input type="file" id="image${formCount}" name="image" accept="image/*" required>
+                `;
+                document.getElementById('people-forms').appendChild(newForm);
+            }
+        });
+    </script>
+</body>
+</html>

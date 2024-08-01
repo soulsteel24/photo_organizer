@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Search Results</h1>
+        {% if images %}
+        <div class="photo-container">
+            {% for image in images %}
+            <img src="{{ url_for('uploaded_file', filename=image.filename) }}" alt="{{ image.filename }}" class="photo">
+            {% endfor %}
+        </div>
+        {% else %}
+        <p>No photos found matching the query.</p>
+        {% endif %}
+        <a href="{{ url_for('index') }}" class="back-link">Back to Home</a>
+    </div>
+</body>
+</html>
