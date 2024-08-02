@@ -2,6 +2,8 @@ from flask import Flask, request, render_template, send_from_directory, redirect
 import os
 import face_recognition
 import json
+from PIL import Image
+import concurrent.futures
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'C:/Users/Legion/OneDrive/Desktop/python_work/converted'
@@ -23,7 +25,7 @@ def save_encodings(encodings):
     with open(app.config['ENCODINGS_FILE'], 'w') as f:
         json.dump(encodings, f)
 
-# Encode faces and cache results
+# Function to encode faces and cache results
 def encode_faces():
     known_encodings = load_encodings()
     known_face_encodings = []
@@ -35,7 +37,7 @@ def encode_faces():
             if name not in known_encodings:
                 image_path = os.path.join(app.config['KNOWN_FACES_FOLDER'], filename)
                 image = face_recognition.load_image_file(image_path)
-                encoding = face_recognition.face_encodings(image)
+                encoding = face_recognition.face_encodings(image, num_jitters=10)
                 if encoding:
                     known_encodings[name] = encoding[0].tolist()
             known_face_encodings.append(known_encodings[name])
@@ -43,6 +45,21 @@ def encode_faces():
 
     save_encodings(known_encodings)
     return known_face_encodings, known_face_names
+
+# Function to resize images
+def resize_image(image_path, max_size=(800, 800)):
+    with Image.open(image_path) as img:
+        img.thumbnail(max_size)
+        img.save(image_path)
+
+# Function to align faces using landmarks
+def align_face(image):
+    face_landmarks_list = face_recognition.face_landmarks(image)
+    if face_landmarks_list:
+        for face_landmarks in face_landmarks_list:
+            # Example alignment logic (details omitted)
+            pass
+    return image
 
 @app.route('/')
 def index():
@@ -58,6 +75,7 @@ def add_people():
             if name and image:
                 image_path = os.path.join(app.config['KNOWN_FACES_FOLDER'], f'{name}.jpg')
                 image.save(image_path)
+                resize_image(image_path)  # Resize image for optimization
         return redirect(url_for('add_people'))
     
     known_face_names = [f.split('.')[0] for f in os.listdir(app.config['KNOWN_FACES_FOLDER']) if f.endswith('.jpg') or f.endswith('.png')]
@@ -74,27 +92,40 @@ def remove_person(name):
 def search():
     user_query = request.form.get('userQuery')
     if user_query:
+        search_names = [name.strip() for name in user_query.split(',')]
         known_face_encodings, known_face_names = encode_faces()
         image_paths = []
 
-        for root, dirs, files in os.walk(app.config['UPLOAD_FOLDER']):
-            for file in files:
-                if file.endswith('.jpg') or file.endswith('.png'):
-                    image_path = os.path.join(root, file)
-                    image = face_recognition.load_image_file(image_path)
-                    face_encodings = face_recognition.face_encodings(image)
-                    
-                    for face_encoding in face_encodings:
-                        matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
-                        if any(matches):
-                            name = known_face_names[matches.index(True)]
-                            if user_query.lower() in name.lower():
-                                image_paths.append(image_path)
-                                break
-        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = []
+            for root, dirs, files in os.walk(app.config['UPLOAD_FOLDER']):
+                for file in files:
+                    if file.endswith('.jpg') or file.endswith('.png'):
+                        image_path = os.path.join(root, file)
+                        futures.append(executor.submit(process_image, image_path, known_face_encodings, known_face_names, search_names))
+
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                if result:
+                    image_paths.append(result)
+
         images = [{'filename': os.path.basename(path)} for path in image_paths]
         return render_template('search.html', images=images)
     return redirect(url_for('index'))
+
+def process_image(image_path, known_face_encodings, known_face_names, search_names):
+    image = face_recognition.load_image_file(image_path)
+    face_encodings = face_recognition.face_encodings(image)
+
+    found_names = set()
+    for face_encoding in face_encodings:
+        matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.5)
+        for match, name in zip(matches, known_face_names):
+            if match:
+                found_names.add(name)
+    if all(name in found_names for name in search_names):
+        return image_path
+    return None
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
