@@ -11,8 +11,8 @@
         <h1>Welcome to Photo Organizer</h1>
         <a href="{{ url_for('add_people') }}" class="add-people-link">Add People</a>
         <form method="post" action="{{ url_for('search') }}">
-            <label for="userQuery">Enter your message:</label>
-            <input type="text" id="userQuery" name="userQuery" placeholder="Enter keywords (e.g., Nita)">
+            <label for="userQuery">Enter names (comma-separated):</label>
+            <input type="text" id="userQuery" name="userQuery" placeholder="Enter names (e.g., Nita, John)">
             <button type="submit">Search</button>
         </form>
     </div>
